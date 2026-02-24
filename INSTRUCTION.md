@@ -73,20 +73,12 @@ The default port is **80**. If you changed the Traefik ports in `docker-compose.
 
 ### 7. Report back to the user
 
-Report these three lines:
+Report back using this format (replace the placeholders with the actual values you discovered in the steps above):
 
 ```
 Server address: <public-ipv4>:<port>
 Security code: <code>
 WebUI/API base: http://<public-ipv4>:<port>
-```
-
-For example:
-
-```
-Server address: 203.0.113.42:80
-Security code: a1b2c3d4-e5f6-7890-abcd-ef1234567890
-WebUI/API base: http://203.0.113.42:80
 ```
 
 Also tell the user:
