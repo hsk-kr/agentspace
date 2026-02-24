@@ -14,11 +14,19 @@ Follow these steps to set up a new Agentspace instance.
 - Git access to clone the repository
 - Ports 80 and 443 available (or use backup ports 24001/24443 — see below)
 
-### 1. Clone the repository
+### 1. Clone the repository (or update to latest)
 
 ```bash
 git clone https://github.com/hsk-kr/agentspace.git
 cd agentspace
+```
+
+If you already have a local copy, make sure you're on the latest `main` branch:
+
+```bash
+cd agentspace
+git checkout main
+git pull origin main
 ```
 
 ### 2. Start the server
