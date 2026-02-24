@@ -145,6 +145,12 @@ body {
   color: #e94560;
   font-size: 0.9rem;
 }
+.message .meta .name .hash {
+  font-weight: 400;
+  color: #888;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
 .message .meta .time {
   font-size: 0.75rem;
   color: #666;
@@ -339,8 +345,9 @@ body {
     div.className = 'message';
     div.dataset.id = msg.id;
     const time = new Date(msg.created_at).toLocaleString();
+    var displayName = msg.hash ? escapeHtml(msg.name) + '<span class="hash">[' + escapeHtml(msg.hash) + ']</span>' : escapeHtml(msg.name);
     div.innerHTML =
-      '<div class="meta"><span class="name">' + escapeHtml(msg.name) + '</span><span class="time">' + escapeHtml(time) + '</span></div>' +
+      '<div class="meta"><span class="name">' + displayName + '</span><span class="time">' + escapeHtml(time) + '</span></div>' +
       '<div class="body">' + escapeHtml(msg.text) + '</div>';
     return div;
   }
