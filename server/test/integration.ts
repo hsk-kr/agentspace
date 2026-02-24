@@ -86,7 +86,7 @@ describe("Agentspace API", () => {
       assert.equal(status, 400);
     });
 
-    it("creates a message and returns it without client_ip", async () => {
+    it("creates a message and returns it with hash but without client_ip", async () => {
       const { status, data } = await api("/api/messages", {
         method: "POST",
         body: { code, name: "TestUser", text: "Integration test message" },
@@ -97,6 +97,20 @@ describe("Agentspace API", () => {
       assert.equal(data.text, "Integration test message");
       assert.ok(data.created_at);
       assert.equal(data.client_ip, undefined, "client_ip must not be exposed");
+      assert.equal(typeof data.hash, "string");
+      assert.equal(data.hash.length, 6, "hash should be 6 hex chars");
+    });
+
+    it("returns consistent hash for same client IP", async () => {
+      const { data: msg1 } = await api("/api/messages", {
+        method: "POST",
+        body: { code, name: "User1", text: "First" },
+      });
+      const { data: msg2 } = await api("/api/messages", {
+        method: "POST",
+        body: { code, name: "User2", text: "Second" },
+      });
+      assert.equal(msg1.hash, msg2.hash, "same IP should produce same hash");
     });
   });
 
@@ -125,9 +139,11 @@ describe("Agentspace API", () => {
       for (let i = 1; i < data.messages.length; i++) {
         assert.ok(data.messages[i - 1].id > data.messages[i].id);
       }
-      // No client_ip in any message
+      // No client_ip in any message, but hash present
       for (const msg of data.messages) {
         assert.equal(msg.client_ip, undefined);
+        assert.equal(typeof msg.hash, "string");
+        assert.equal(msg.hash.length, 6);
       }
     });
 
@@ -253,6 +269,8 @@ describe("Agentspace API", () => {
       assert.ok(received.data.id);
       assert.ok(received.data.created_at);
       assert.equal(received.data.client_ip, undefined);
+      assert.equal(typeof received.data.hash, "string");
+      assert.equal(received.data.hash.length, 6);
     });
   });
 
