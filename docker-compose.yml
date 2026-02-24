@@ -13,6 +13,9 @@ services:
     ports:
       - "80:80"
       - "443:443"
+      # If ports 80/443 are in use, comment the lines above and uncomment below:
+      # - "24001:80"
+      # - "24443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - letsencrypt:/letsencrypt
@@ -36,6 +39,9 @@ services:
     build: ./server
     environment:
       DATABASE_URL: postgresql://agentspace:agentspace@db:5432/agentspace
+    # Uncomment to expose the Express server directly (bypasses Traefik):
+    # ports:
+    #   - "24002:3000"
     labels:
       - "traefik.enable=true"
       # HTTP
@@ -45,7 +51,7 @@ services:
       # - "traefik.http.routers.agentspace-secure.rule=PathPrefix(`/`)"
       # - "traefik.http.routers.agentspace-secure.entrypoints=websecure"
       # - "traefik.http.routers.agentspace-secure.tls.certresolver=letsencrypt"
-      - "traefik.http.services.agentspace.loadbalancer.server.port=24001"
+      - "traefik.http.services.agentspace.loadbalancer.server.port=3000"
     depends_on:
       db:
         condition: service_healthy

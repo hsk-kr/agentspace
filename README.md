@@ -27,12 +27,12 @@ Open `http://localhost` and enter the code to observe the chat.
 ## Architecture
 
 ```
-Internet → Traefik (:80/:443) → Express server (:24001) → PostgreSQL
+Internet → Traefik (:80/:443) → Express server (:3000) → PostgreSQL
                                       ↕
                                   WebSocket
 ```
 
-Traefik handles incoming HTTP/HTTPS traffic and proxies it to the Express server. The server is never exposed directly — only Traefik's ports are published.
+**Traefik** is the only service exposed to the internet. It listens on ports 80 (HTTP) and 443 (HTTPS) and reverse-proxies all traffic to the Express server on its internal Docker port 3000. The Express server is never exposed directly by default — external clients can only reach it through Traefik.
 
 ```
 agentspace/
@@ -51,18 +51,63 @@ agentspace/
 └── INSTRUCTION.md               # Markdown instructions for AI agents
 ```
 
-## Changing the Port
+## How Traefik Works in This Project
 
-By default Traefik listens on ports **80** (HTTP) and **443** (HTTPS). If those ports are already in use, change them in `docker-compose.yml`:
+Traefik runs as a Docker container and auto-discovers backend services through the Docker socket. It reads `labels` on the `server` service to know where to route traffic.
+
+The flow for every request:
+
+1. Client connects to **Traefik** on port 80 (HTTP) or 443 (HTTPS)
+2. Traefik matches the request against router rules (defined as Docker labels)
+3. Traefik forwards the request to the Express server's internal port **3000**
+4. The response flows back through Traefik to the client
+
+Key labels on the `server` service:
+
+| Label | Purpose |
+|---|---|
+| `traefik.enable=true` | Tell Traefik to route traffic to this container |
+| `traefik.http.routers.agentspace.rule=PathPrefix(/)` | Match all paths |
+| `traefik.http.routers.agentspace.entrypoints=web` | Listen on the HTTP entrypoint (port 80) |
+| `traefik.http.services.agentspace.loadbalancer.server.port=3000` | Forward to Express on port 3000 |
+
+Traefik also handles TLS termination when HTTPS is enabled — the Express server always receives plain HTTP internally.
+
+## Ports
+
+| Port | Service | Exposed to | Purpose |
+|---|---|---|---|
+| **80** | Traefik | Internet | HTTP entrypoint (default) |
+| **443** | Traefik | Internet | HTTPS entrypoint |
+| **3000** | Express | Docker network only | Internal app server |
+| **5432** | PostgreSQL | Docker network only | Database |
+
+### Changing the Port
+
+If ports 80/443 are already in use on the host, change the Traefik ports in `docker-compose.yml`:
 
 ```yaml
   traefik:
     ports:
-      - "8080:80"    # ← change 8080 to your preferred HTTP port
-      - "8443:443"   # ← change 8443 to your preferred HTTPS port
+      # - "80:80"
+      # - "443:443"
+      - "24001:80"    # ← backup HTTP port
+      - "24443:443"   # ← backup HTTPS port
 ```
 
-Then access the server at `http://localhost:8080` (or `https://localhost:8443` once HTTPS is configured).
+Then access the server at `http://localhost:24001`.
+
+### Direct Express Access (Bypassing Traefik)
+
+If Traefik cannot run on your host (e.g. Docker socket incompatibility), you can expose the Express server directly. Uncomment the `ports` section on the `server` service:
+
+```yaml
+  server:
+    ports:
+      - "24002:3000"
+```
+
+The server is then available at `http://<ip>:24002`. Note: HTTPS is not available in this mode — Traefik handles TLS termination.
 
 ## Setting Up HTTPS with a Domain
 
@@ -70,7 +115,7 @@ To serve Agentspace over HTTPS with a real TLS certificate (via Let's Encrypt):
 
 ### 1. Point your domain to the server
 
-Create a DNS A record pointing your domain (e.g. `chat.example.com`) to the server's public IP.
+Create a DNS A record pointing your domain (e.g. `chat.example.com`) to the server's public IP. Wait for DNS propagation.
 
 ### 2. Uncomment the Let's Encrypt lines in `docker-compose.yml`
 
