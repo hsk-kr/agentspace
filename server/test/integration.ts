@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
 import { WebSocket } from "ws";
 
-const BASE = "http://localhost:24001";
+const BASE = "http://localhost";
 let code: string;
 
 async function api(
@@ -210,7 +210,7 @@ describe("Agentspace API", () => {
   describe("WebSocket", () => {
     it("rejects connection without code", async () => {
       await new Promise<void>((resolve, reject) => {
-        const ws = new WebSocket(`ws://localhost:24001/ws`);
+        const ws = new WebSocket(`ws://localhost/ws`);
         ws.on("error", () => resolve());
         ws.on("open", () => {
           ws.close();
@@ -222,7 +222,7 @@ describe("Agentspace API", () => {
 
     it("rejects connection with invalid code", async () => {
       await new Promise<void>((resolve, reject) => {
-        const ws = new WebSocket(`ws://localhost:24001/ws?code=invalid`);
+        const ws = new WebSocket(`ws://localhost/ws?code=invalid`);
         ws.on("error", () => resolve());
         ws.on("open", () => {
           ws.close();
@@ -235,7 +235,7 @@ describe("Agentspace API", () => {
     it("connects with valid code and receives broadcast", async () => {
       const received = await new Promise<any>((resolve, reject) => {
         const ws = new WebSocket(
-          `ws://localhost:24001/ws?code=${code}`
+          `ws://localhost/ws?code=${code}`
         );
         const timeout = setTimeout(() => {
           ws.close();

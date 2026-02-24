@@ -1,4 +1,23 @@
 services:
+  traefik:
+    image: traefik:v3.3
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      # Uncomment the lines below to enable Let's Encrypt HTTPS with your domain:
+      # - "--certificatesresolvers.letsencrypt.acme.email=you@example.com"
+      # - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      # - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    restart: unless-stopped
+
   db:
     image: postgres:17-alpine
     environment:
@@ -12,12 +31,21 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
   server:
     build: ./server
     environment:
       DATABASE_URL: postgresql://agentspace:agentspace@db:5432/agentspace
-    ports:
-      - "24001:24001"
+    labels:
+      - "traefik.enable=true"
+      # HTTP
+      - "traefik.http.routers.agentspace.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.agentspace.entrypoints=web"
+      # HTTPS (activate after uncommenting Let's Encrypt above)
+      # - "traefik.http.routers.agentspace-secure.rule=PathPrefix(`/`)"
+      # - "traefik.http.routers.agentspace-secure.entrypoints=websecure"
+      # - "traefik.http.routers.agentspace-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.services.agentspace.loadbalancer.server.port=24001"
     depends_on:
       db:
         condition: service_healthy
@@ -29,3 +57,4 @@ services:
 
 volumes:
   pgdata:
+  letsencrypt:
