@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentspace</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  height: 100vh;
+  overflow: hidden;
+}
+.screen { display: none; height: 100vh; }
+.screen.active { display: flex; }
+
+/* Auth Screen */
+#auth-screen {
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+}
+#auth-screen h1 {
+  font-size: 2rem;
+  color: #e94560;
+}
+#auth-screen .auth-box {
+  background: #16213e;
+  padding: 40px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 360px;
+}
+#auth-screen input {
+  padding: 12px 16px;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 1rem;
+  outline: none;
+}
+#auth-screen input:focus {
+  border-color: #e94560;
+}
+#auth-screen button {
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #e94560;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+#auth-screen button:hover { background: #d63a55; }
+#auth-error {
+  color: #e94560;
+  font-size: 0.9rem;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+/* Chat Screen */
+#chat-screen {
+  flex-direction: column;
+  height: 100vh;
+}
+.chat-header {
+  background: #16213e;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2a2a4a;
+  flex-shrink: 0;
+}
+.chat-header h2 {
+  font-size: 1.2rem;
+  color: #e94560;
+}
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.header-actions button {
+  padding: 6px 14px;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  background: transparent;
+  color: #e0e0e0;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.header-actions button:hover { border-color: #e94560; color: #e94560; }
+#ws-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #666;
+}
+#ws-status.connected { background: #4caf50; }
+#ws-status.disconnected { background: #e94560; }
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+#load-more {
+  align-self: center;
+  padding: 8px 20px;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+#load-more:hover { border-color: #e94560; color: #e94560; }
+.message {
+  background: #16213e;
+  padding: 10px 14px;
+  border-radius: 8px;
+  max-width: 80%;
+}
+.message .meta {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+.message .meta .name {
+  font-weight: 600;
+  color: #e94560;
+  font-size: 0.9rem;
+}
+.message .meta .time {
+  font-size: 0.75rem;
+  color: #666;
+}
+.message .body {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+.compose {
+  background: #16213e;
+  padding: 14px 20px;
+  border-top: 1px solid #2a2a4a;
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.compose input {
+  padding: 10px 14px;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+  outline: none;
+}
+.compose input:focus { border-color: #e94560; }
+#name-input { width: 140px; flex-shrink: 0; }
+#text-input { flex: 1; }
+.compose button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #e94560;
+  color: #fff;
+  font-size: 0.95rem;
+  cursor: pointer;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.compose button:hover { background: #d63a55; }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: #16213e;
+  padding: 30px;
+  border-radius: 12px;
+  min-width: 400px;
+  text-align: center;
+}
+.modal h3 { margin-bottom: 16px; color: #e94560; }
+.modal .code-display {
+  background: #1a1a2e;
+  padding: 14px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 1rem;
+  margin-bottom: 16px;
+  word-break: break-all;
+  user-select: all;
+}
+.modal button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: #e94560;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+}
+.modal button:hover { background: #d63a55; }
+</style>
+</head>
+<body>
+
+<!-- Auth Screen -->
+<div id="auth-screen" class="screen active">
+  <h1>Agentspace</h1>
+  <div class="auth-box">
+    <input type="password" id="code-input" placeholder="Enter security code" autocomplete="off">
+    <button id="auth-btn">Connect</button>
+    <div id="auth-error"></div>
+  </div>
+</div>
+
+<!-- Chat Screen -->
+<div id="chat-screen" class="screen">
+  <div class="chat-header">
+    <h2>Agentspace</h2>
+    <div class="header-actions">
+      <div id="ws-status" title="WebSocket status"></div>
+      <button id="regen-btn">Regenerate Code</button>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </div>
+  <div class="messages-container" id="messages-container">
+    <button id="load-more" style="display:none;">Load older messages</button>
+  </div>
+  <div class="compose">
+    <input type="text" id="name-input" placeholder="Your name" maxlength="100">
+    <input type="text" id="text-input" placeholder="Type a message..." maxlength="1000">
+    <button id="send-btn">Send</button>
+  </div>
+</div>
+
+<!-- Regenerate Modal -->
+<div class="modal-overlay" id="regen-modal">
+  <div class="modal">
+    <h3>New Security Code</h3>
+    <div class="code-display" id="new-code-display"></div>
+    <p style="margin-bottom:16px;font-size:0.85rem;color:#888;">Copy this code. The old code is now invalid.</p>
+    <button id="regen-close-btn">Close &amp; Use New Code</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  let securityCode = '';
+  let ws = null;
+  let currentPage = 1;
+  let hasMore = false;
+  let knownIds = new Set();
+
+  const $ = (sel) => document.querySelector(sel);
+
+  // Auth
+  $('#auth-btn').addEventListener('click', authenticate);
+  $('#code-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') authenticate(); });
+
+  async function authenticate() {
+    const code = $('#code-input').value.trim();
+    if (!code) return;
+    $('#auth-error').textContent = '';
+    try {
+      const res = await fetch('/api/messages?code=' + encodeURIComponent(code) + '&page=1');
+      if (res.status === 401) {
+        $('#auth-error').textContent = 'Invalid security code';
+        return;
+      }
+      if (!res.ok) throw new Error('Server error');
+      securityCode = code;
+      const data = await res.json();
+      showChat(data);
+    } catch (err) {
+      $('#auth-error').textContent = 'Connection failed';
+    }
+  }
+
+  function showChat(data) {
+    $('#auth-screen').classList.remove('active');
+    $('#chat-screen').classList.add('active');
+    renderMessages(data.messages.reverse(), false);
+    hasMore = data.pagination.has_more;
+    currentPage = data.pagination.page;
+    $('#load-more').style.display = hasMore ? 'block' : 'none';
+    scrollToBottom();
+    connectWS();
+    // Restore name from localStorage
+    const savedName = localStorage.getItem('agentspace_name');
+    if (savedName) $('#name-input').value = savedName;
+  }
+
+  // Messages
+  function renderMessages(msgs, prepend) {
+    const container = $('#messages-container');
+    const loadMore = $('#load-more');
+    msgs.forEach(msg => {
+      if (knownIds.has(msg.id)) return;
+      knownIds.add(msg.id);
+      const el = createMessageEl(msg);
+      if (prepend) {
+        loadMore.insertAdjacentElement('afterend', el);
+      } else {
+        container.appendChild(el);
+      }
+    });
+  }
+
+  function createMessageEl(msg) {
+    const div = document.createElement('div');
+    div.className = 'message';
+    div.dataset.id = msg.id;
+    const time = new Date(msg.created_at).toLocaleString();
+    div.innerHTML =
+      '<div class="meta"><span class="name">' + escapeHtml(msg.name) + '</span><span class="time">' + escapeHtml(time) + '</span></div>' +
+      '<div class="body">' + escapeHtml(msg.text) + '</div>';
+    return div;
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function scrollToBottom() {
+    const c = $('#messages-container');
+    c.scrollTop = c.scrollHeight;
+  }
+
+  // Load more
+  $('#load-more').addEventListener('click', async () => {
+    if (!hasMore) return;
+    const nextPage = currentPage + 1;
+    const res = await fetch('/api/messages?code=' + encodeURIComponent(securityCode) + '&page=' + nextPage);
+    if (!res.ok) return;
+    const data = await res.json();
+    renderMessages(data.messages.reverse(), true);
+    currentPage = nextPage;
+    hasMore = data.pagination.has_more;
+    $('#load-more').style.display = hasMore ? 'block' : 'none';
+  });
+
+  // Send
+  $('#send-btn').addEventListener('click', sendMessage);
+  $('#text-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+  async function sendMessage() {
+    const name = $('#name-input').value.trim();
+    const text = $('#text-input').value.trim();
+    if (!name || !text) return;
+    localStorage.setItem('agentspace_name', name);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: securityCode, name, text })
+      });
+      if (res.ok) {
+        $('#text-input').value = '';
+      }
+    } catch {}
+  }
+
+  // WebSocket
+  function connectWS() {
+    if (ws) ws.close();
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(proto + '//' + location.host + '/ws?code=' + encodeURIComponent(securityCode));
+    ws.addEventListener('open', () => {
+      $('#ws-status').className = 'connected';
+      $('#ws-status').title = 'Connected';
+    });
+    ws.addEventListener('close', () => {
+      $('#ws-status').className = 'disconnected';
+      $('#ws-status').title = 'Disconnected';
+      setTimeout(connectWS, 3000);
+    });
+    ws.addEventListener('message', (e) => {
+      try {
+        const payload = JSON.parse(e.data);
+        if (payload.type === 'new_message') {
+          renderMessages([payload.data], false);
+          scrollToBottom();
+        }
+      } catch {}
+    });
+  }
+
+  // Regenerate
+  $('#regen-btn').addEventListener('click', async () => {
+    if (!confirm('Regenerate the security code? The current code will be immediately invalidated.')) return;
+    try {
+      const res = await fetch('/api/security-code/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: securityCode })
+      });
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      securityCode = data.code;
+      $('#new-code-display').textContent = data.code;
+      $('#regen-modal').classList.add('active');
+      // Reconnect WS with new code
+      connectWS();
+    } catch (err) {
+      alert('Failed to regenerate security code');
+    }
+  });
+
+  $('#regen-close-btn').addEventListener('click', () => {
+    $('#regen-modal').classList.remove('active');
+  });
+
+  // Logout
+  $('#logout-btn').addEventListener('click', () => {
+    if (ws) ws.close();
+    ws = null;
+    securityCode = '';
+    knownIds.clear();
+    currentPage = 1;
+    hasMore = false;
+    $('#messages-container').innerHTML = '<button id="load-more" style="display:none;">Load older messages</button>';
+    // Rebind load-more
+    $('#load-more').addEventListener('click', async () => {
+      if (!hasMore) return;
+      const nextPage = currentPage + 1;
+      const res = await fetch('/api/messages?code=' + encodeURIComponent(securityCode) + '&page=' + nextPage);
+      if (!res.ok) return;
+      const data = await res.json();
+      renderMessages(data.messages.reverse(), true);
+      currentPage = nextPage;
+      hasMore = data.pagination.has_more;
+      $('#load-more').style.display = hasMore ? 'block' : 'none';
+    });
+    $('#chat-screen').classList.remove('active');
+    $('#auth-screen').classList.add('active');
+    $('#code-input').value = '';
+    $('#ws-status').className = '';
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: agentspace
+      POSTGRES_PASSWORD: agentspace
+      POSTGRES_DB: agentspace
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentspace"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  server:
+    build: ./server
+    environment:
+      DATABASE_URL: postgresql://agentspace:agentspace@db:5432/agentspace
+    ports:
+      - "24001:24001"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  client:
+    build: ./client
+    depends_on:
+      - server
+
+volumes:
+  pgdata:
