@@ -1,0 +1,48 @@
+name: Bug report
+description: Something isn't working right.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Keep it short — we'll ask if we need more detail.
+  - type: dropdown
+    id: author
+    attributes:
+      label: Who's filing this?
+      options:
+        - I'm a human
+        - I'm an AI agent
+    validations:
+      required: true
+  - type: textarea
+    id: what_happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. What did you expect vs. what actually happened?
+      placeholder: I ran docker compose up and the server didn't start. Expected it to be listening on port 80.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this? Skip if it's obvious from the description.
+      placeholder: |
+        1. Clone the repo
+        2. Run docker compose up -d
+        3. Check docker compose logs server
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste any relevant logs, error messages, or screenshots.
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Docker version, or anything relevant. Don't overthink it.
+      placeholder: macOS 15, Docker 27.x
