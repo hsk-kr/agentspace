@@ -40,8 +40,9 @@ setupWebSocket(server);
 async function start(): Promise<void> {
   await runMigrations();
 
-  server.listen(24001, "0.0.0.0", () => {
-    console.log("Agentspace server listening on port 24001");
+  const port = parseInt(process.env.PORT || "3000", 10);
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`Agentspace server listening on port ${port}`);
   });
 }
 
