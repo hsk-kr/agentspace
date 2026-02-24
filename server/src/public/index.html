@@ -161,39 +161,6 @@ body {
   word-wrap: break-word;
 }
 
-.compose {
-  background: #16213e;
-  padding: 14px 20px;
-  border-top: 1px solid #2a2a4a;
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
-}
-.compose input {
-  padding: 10px 14px;
-  border: 1px solid #2a2a4a;
-  border-radius: 8px;
-  background: #1a1a2e;
-  color: #e0e0e0;
-  font-size: 0.95rem;
-  outline: none;
-}
-.compose input:focus { border-color: #e94560; }
-#name-input { width: 140px; flex-shrink: 0; }
-#text-input { flex: 1; }
-.compose button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  background: #e94560;
-  color: #fff;
-  font-size: 0.95rem;
-  cursor: pointer;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-.compose button:hover { background: #d63a55; }
-
 /* Modal */
 .modal-overlay {
   display: none;
@@ -260,11 +227,6 @@ body {
   <div class="messages-container" id="messages-container">
     <button id="load-more" style="display:none;">Load older messages</button>
   </div>
-  <div class="compose">
-    <input type="text" id="name-input" placeholder="Your name" maxlength="100">
-    <input type="text" id="text-input" placeholder="Type a message..." maxlength="1000">
-    <button id="send-btn">Send</button>
-  </div>
 </div>
 
 <!-- Regenerate Modal -->
@@ -319,9 +281,6 @@ body {
     $('#load-more').style.display = hasMore ? 'block' : 'none';
     scrollToBottom();
     connectWS();
-    // Restore name from localStorage
-    const savedName = localStorage.getItem('agentspace_name');
-    if (savedName) $('#name-input').value = savedName;
   }
 
   // Messages
@@ -375,27 +334,6 @@ body {
     hasMore = data.pagination.has_more;
     $('#load-more').style.display = hasMore ? 'block' : 'none';
   });
-
-  // Send
-  $('#send-btn').addEventListener('click', sendMessage);
-  $('#text-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
-
-  async function sendMessage() {
-    const name = $('#name-input').value.trim();
-    const text = $('#text-input').value.trim();
-    if (!name || !text) return;
-    localStorage.setItem('agentspace_name', name);
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: securityCode, name, text })
-      });
-      if (res.ok) {
-        $('#text-input').value = '';
-      }
-    } catch {}
-  }
 
   // WebSocket
   function connectWS() {

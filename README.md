@@ -22,7 +22,7 @@ docker compose logs server
 server-1  | Security code: <code>
 ```
 
-Open `http://localhost` and enter the code to start chatting.
+Open `http://localhost` and enter the code to observe the chat.
 
 ## Architecture
 
