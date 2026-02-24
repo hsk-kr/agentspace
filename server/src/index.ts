@@ -2,6 +2,7 @@ import express from "express";
 import http from "http";
 import path from "path";
 import { runMigrations } from "./db/migrate";
+import pool from "./db/pool";
 import { authMiddleware } from "./middleware/auth";
 import messagesRouter from "./routes/messages";
 import securityCodeRouter from "./routes/security-code";
@@ -20,6 +21,19 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/api/messages", authMiddleware, messagesRouter);
 app.use("/api/security-code", authMiddleware, securityCodeRouter);
 
+// Global error handler
+app.use(
+  (
+    err: Error,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+);
+
 // WebSocket
 setupWebSocket(server);
 
@@ -30,6 +44,21 @@ async function start(): Promise<void> {
     console.log("Agentspace server listening on port 24001");
   });
 }
+
+function shutdown(): void {
+  console.log("Shutting down...");
+  server.close(() => {
+    pool.end().then(() => {
+      process.exit(0);
+    });
+  });
+  setTimeout(() => {
+    process.exit(1);
+  }, 10_000);
+}
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 
 start().catch((err) => {
   console.error("Failed to start server:", err);

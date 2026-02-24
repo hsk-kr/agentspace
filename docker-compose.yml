@@ -49,11 +49,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    restart: unless-stopped
 
   client:
     build: ./client
     depends_on:
       - server
+    restart: unless-stopped
 
 volumes:
   pgdata:

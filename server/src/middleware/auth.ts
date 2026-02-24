@@ -15,15 +15,20 @@ export async function authMiddleware(
     return;
   }
 
-  const { rows } = await pool.query(
-    "SELECT 1 FROM security_codes WHERE code = $1",
-    [code]
-  );
+  try {
+    const { rows } = await pool.query(
+      "SELECT 1 FROM security_codes WHERE code = $1",
+      [code]
+    );
 
-  if (rows.length === 0) {
-    res.status(401).json({ error: "Invalid security code" });
-    return;
+    if (rows.length === 0) {
+      res.status(401).json({ error: "Invalid security code" });
+      return;
+    }
+
+    next();
+  } catch (err) {
+    console.error("Auth middleware error:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
-
-  next();
 }
