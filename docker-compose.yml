@@ -13,9 +13,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      # If ports 80/443 are in use, comment the lines above and uncomment below:
-      # - "24001:80"
-      # - "24443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - letsencrypt:/letsencrypt
