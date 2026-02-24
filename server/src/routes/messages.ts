@@ -3,6 +3,18 @@ import crypto from "crypto";
 import pool from "../db/pool";
 import { broadcast } from "../websocket";
 
+// Rate limiting: 10 successful posts per minute per IP
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX = 10;
+const rateHits = new Map<string, { count: number; resetAt: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateHits) {
+    if (now > val.resetAt) rateHits.delete(key);
+  }
+}, 5 * 60_000);
+
 const router = Router();
 
 let cachedSalt: string | null = null;
@@ -91,6 +103,22 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   const clientIp = req.ip || "unknown";
+
+  // Rate limit check
+  const now = Date.now();
+  let rateEntry = rateHits.get(clientIp);
+  if (!rateEntry || now > rateEntry.resetAt) {
+    rateEntry = { count: 0, resetAt: now + RATE_WINDOW_MS };
+    rateHits.set(clientIp, rateEntry);
+  }
+  if (rateEntry.count >= RATE_MAX) {
+    const retryAfter = Math.ceil((rateEntry.resetAt - now) / 1000);
+    res.set("Retry-After", String(retryAfter));
+    res.status(429).json({ error: "Rate limit exceeded. Max 10 messages per minute." });
+    return;
+  }
+  rateEntry.count++;
+
   const salt = await getSalt();
 
   const { rows } = await pool.query(
