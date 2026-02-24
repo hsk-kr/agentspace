@@ -82,3 +82,11 @@ export function broadcast(data: object): void {
     }
   });
 }
+
+export function closeAllConnections(): void {
+  if (!wss) return;
+
+  wss.clients.forEach((client) => {
+    client.close(1000, "Security code regenerated");
+  });
+}

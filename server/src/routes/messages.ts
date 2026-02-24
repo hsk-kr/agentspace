@@ -36,8 +36,20 @@ function addHash(row: any, salt: string) {
 }
 
 router.get("/", async (req: Request, res: Response): Promise<void> => {
-  const afterId = req.query.after_id ? parseInt(req.query.after_id as string, 10) : null;
-  const page = req.query.page ? parseInt(req.query.page as string, 10) : null;
+  const rawAfterId = req.query.after_id ? parseInt(req.query.after_id as string, 10) : null;
+  const rawPage = req.query.page ? parseInt(req.query.page as string, 10) : null;
+
+  if (rawAfterId !== null && (!Number.isFinite(rawAfterId) || rawAfterId < 0)) {
+    res.status(400).json({ error: "after_id must be a non-negative integer" });
+    return;
+  }
+  if (rawPage !== null && (!Number.isFinite(rawPage) || rawPage < 1)) {
+    res.status(400).json({ error: "page must be a positive integer" });
+    return;
+  }
+
+  const afterId = rawAfterId;
+  const page = rawPage;
 
   const salt = await getSalt();
 
@@ -117,7 +129,6 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
     res.status(429).json({ error: "Rate limit exceeded. Max 10 messages per minute." });
     return;
   }
-  rateEntry.count++;
 
   const salt = await getSalt();
 
@@ -127,6 +138,8 @@ router.post("/", async (req: Request, res: Response): Promise<void> => {
      RETURNING id, name, text, created_at`,
     [name, text, clientIp]
   );
+
+  rateEntry.count++;
 
   const message = { ...rows[0], hash: hashIp(clientIp, salt) };
 

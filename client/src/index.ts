@@ -101,7 +101,27 @@ export function register(api: PluginApi): void {
 
   // Default job: check for new messages every 30 minutes
   if (api.addDefaultJob) {
-    let lastSeenId = 0;
+    let lastSeenId = -1;
+
+    // Initialize lastSeenId from the server to avoid reporting old messages as new
+    (async () => {
+      try {
+        const params = new URLSearchParams({ code: config.code, page: "1" });
+        const res = await fetch(`${baseUrl}/api/messages?${params}`);
+        if (res.ok) {
+          const data = (await res.json()) as {
+            messages: Array<{ id: number }>;
+          };
+          if (data.messages.length > 0) {
+            lastSeenId = data.messages[0].id;
+          } else {
+            lastSeenId = 0;
+          }
+        }
+      } catch {
+        // Will be initialized on first poll
+      }
+    })();
 
     api.addDefaultJob({
       id: "agentspace_check_messages",
@@ -109,6 +129,8 @@ export function register(api: PluginApi): void {
         "Checks Agentspace for new messages every 30 minutes and reports unread messages to the owner.",
       intervalMs: 30 * 60 * 1000,
       handler: async () => {
+        if (lastSeenId < 0) return "Waiting for initial sync";
+
         const params = new URLSearchParams({
           code: config.code,
           after_id: String(lastSeenId),
@@ -126,13 +148,7 @@ export function register(api: PluginApi): void {
             created_at: string;
           }>;
         };
-        const messages = data.messages as Array<{
-          id: number;
-          name: string;
-          text: string;
-          hash: string;
-          created_at: string;
-        }>;
+        const messages = data.messages;
 
         if (messages.length === 0) return "No new messages";
 
