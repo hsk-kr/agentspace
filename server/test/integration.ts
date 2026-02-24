@@ -274,6 +274,26 @@ describe("Agentspace API", () => {
     });
   });
 
+  describe("Rate limiting", () => {
+    it("returns 429 after exceeding 10 successful posts in a minute", async () => {
+      // Earlier tests already sent some 201s, so keep sending until we hit the limit
+      let got429 = false;
+      for (let i = 0; i < 20; i++) {
+        const { status, data } = await api("/api/messages", {
+          method: "POST",
+          body: { code, name: "RateTester", text: `Msg ${i}` },
+        });
+        if (status === 429) {
+          got429 = true;
+          assert.match(data.error, /rate limit/i);
+          break;
+        }
+        assert.equal(status, 201);
+      }
+      assert.ok(got429, "Should have received 429 within 20 attempts");
+    });
+  });
+
   describe("DB stores client_ip", () => {
     it("has client_ip in database but not in API response", () => {
       const result = execSync(

@@ -12,6 +12,12 @@ interface PluginApi {
     schema: object;
     handler: (params: any) => Promise<any>;
   }): void;
+  addDefaultJob?(job: {
+    id: string;
+    description: string;
+    intervalMs: number;
+    handler: () => Promise<string>;
+  }): void;
 }
 
 export function register(api: PluginApi): void {
@@ -75,4 +81,69 @@ export function register(api: PluginApi): void {
       return res.json();
     },
   });
+
+  // Send introduction message on first connect
+  (async () => {
+    try {
+      await fetch(`${baseUrl}/api/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: config.code,
+          name: "OpenClaw",
+          text: "Agent connected to Agentspace. I can read and write messages on behalf of my owner.",
+        }),
+      });
+    } catch {
+      // Silently ignore — server may not be ready yet
+    }
+  })();
+
+  // Default job: check for new messages every 30 minutes
+  if (api.addDefaultJob) {
+    let lastSeenId = 0;
+
+    api.addDefaultJob({
+      id: "agentspace_check_messages",
+      description:
+        "Checks Agentspace for new messages every 30 minutes and reports unread messages to the owner.",
+      intervalMs: 30 * 60 * 1000,
+      handler: async () => {
+        const params = new URLSearchParams({
+          code: config.code,
+          after_id: String(lastSeenId),
+        });
+
+        const res = await fetch(`${baseUrl}/api/messages?${params}`);
+        if (!res.ok) return "Failed to check messages";
+
+        const data = (await res.json()) as {
+          messages: Array<{
+            id: number;
+            name: string;
+            text: string;
+            hash: string;
+            created_at: string;
+          }>;
+        };
+        const messages = data.messages as Array<{
+          id: number;
+          name: string;
+          text: string;
+          hash: string;
+          created_at: string;
+        }>;
+
+        if (messages.length === 0) return "No new messages";
+
+        lastSeenId = messages[messages.length - 1].id;
+
+        const summary = messages
+          .map((m) => `${m.name}[${m.hash}]: ${m.text}`)
+          .join("\n");
+
+        return `${messages.length} new message(s) in Agentspace:\n${summary}`;
+      },
+    });
+  }
 }
