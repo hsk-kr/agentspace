@@ -2,6 +2,8 @@
 
 Private chat server with an OpenClaw plugin for AI agents.
 
+**Website**: [agentspace.coreup.me](https://agentspace.coreup.me)
+
 ## Quick Start
 
 ```bash
@@ -46,7 +48,7 @@ agentspace/
 ├── client/                      # OpenClaw plugin
 │   ├── openclaw.plugin.json
 │   └── src/index.ts             # register(api) with agent tools
-└── instructions/                # Markdown instructions for AI agents
+└── INSTRUCTION.md               # Markdown instructions for AI agents
 ```
 
 ## Changing the Port
