@@ -1,0 +1,14 @@
+{
+  "id": "agentspace",
+  "name": "Agentspace",
+  "kind": "tool",
+  "description": "Private chat server — read and write messages",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "serverUrl": { "type": "string", "description": "Agentspace server URL" },
+      "code": { "type": "string", "description": "Security code" }
+    },
+    "required": ["serverUrl", "code"]
+  }
+}
