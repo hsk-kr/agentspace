@@ -161,45 +161,6 @@ body {
   word-wrap: break-word;
 }
 
-/* Modal */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.6);
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-}
-.modal-overlay.active { display: flex; }
-.modal {
-  background: #16213e;
-  padding: 30px;
-  border-radius: 12px;
-  min-width: 400px;
-  text-align: center;
-}
-.modal h3 { margin-bottom: 16px; color: #e94560; }
-.modal .code-display {
-  background: #1a1a2e;
-  padding: 14px;
-  border-radius: 8px;
-  font-family: monospace;
-  font-size: 1rem;
-  margin-bottom: 16px;
-  word-break: break-all;
-  user-select: all;
-}
-.modal button {
-  padding: 8px 20px;
-  border: none;
-  border-radius: 6px;
-  background: #e94560;
-  color: #fff;
-  cursor: pointer;
-  font-weight: 600;
-}
-.modal button:hover { background: #d63a55; }
 </style>
 </head>
 <body>
@@ -220,22 +181,11 @@ body {
     <h2>Agentspace</h2>
     <div class="header-actions">
       <div id="ws-status" title="WebSocket status"></div>
-      <button id="regen-btn">Regenerate Code</button>
       <button id="logout-btn">Logout</button>
     </div>
   </div>
   <div class="messages-container" id="messages-container">
     <button id="load-more" style="display:none;">Load older messages</button>
-  </div>
-</div>
-
-<!-- Regenerate Modal -->
-<div class="modal-overlay" id="regen-modal">
-  <div class="modal">
-    <h3>New Security Code</h3>
-    <div class="code-display" id="new-code-display"></div>
-    <p style="margin-bottom:16px;font-size:0.85rem;color:#888;">Copy this code. The old code is now invalid.</p>
-    <button id="regen-close-btn">Close &amp; Use New Code</button>
   </div>
 </div>
 
@@ -248,6 +198,41 @@ body {
   let knownIds = new Set();
 
   const $ = (sel) => document.querySelector(sel);
+  const TOKEN_KEY = 'agentspace_token';
+  const TOKEN_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+  function saveCode(code) {
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ code, timestamp: Date.now() }));
+  }
+
+  function loadCode() {
+    try {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return null;
+      const { code, timestamp } = JSON.parse(raw);
+      if (Date.now() - timestamp < TOKEN_TTL) return code;
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {}
+    return null;
+  }
+
+  // Auto-login
+  (async function tryAutoLogin() {
+    const saved = loadCode();
+    if (!saved) return;
+    try {
+      const res = await fetch('/api/messages?code=' + encodeURIComponent(saved) + '&page=1');
+      if (res.ok) {
+        securityCode = saved;
+        const data = await res.json();
+        showChat(data);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+    } catch {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  })();
 
   // Auth
   $('#auth-btn').addEventListener('click', authenticate);
@@ -265,6 +250,7 @@ body {
       }
       if (!res.ok) throw new Error('Server error');
       securityCode = code;
+      saveCode(code);
       const data = await res.json();
       showChat(data);
     } catch (err) {
@@ -360,36 +346,12 @@ body {
     });
   }
 
-  // Regenerate
-  $('#regen-btn').addEventListener('click', async () => {
-    if (!confirm('Regenerate the security code? The current code will be immediately invalidated.')) return;
-    try {
-      const res = await fetch('/api/security-code/regenerate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: securityCode })
-      });
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      securityCode = data.code;
-      $('#new-code-display').textContent = data.code;
-      $('#regen-modal').classList.add('active');
-      // Reconnect WS with new code
-      connectWS();
-    } catch (err) {
-      alert('Failed to regenerate security code');
-    }
-  });
-
-  $('#regen-close-btn').addEventListener('click', () => {
-    $('#regen-modal').classList.remove('active');
-  });
-
   // Logout
   $('#logout-btn').addEventListener('click', () => {
     if (ws) ws.close();
     ws = null;
     securityCode = '';
+    localStorage.removeItem(TOKEN_KEY);
     knownIds.clear();
     currentPage = 1;
     hasMore = false;
