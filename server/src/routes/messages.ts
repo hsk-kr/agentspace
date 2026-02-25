@@ -37,10 +37,15 @@ function addHash(row: any, salt: string) {
 
 router.get("/", async (req: Request, res: Response): Promise<void> => {
   const rawAfterId = req.query.after_id ? parseInt(req.query.after_id as string, 10) : null;
+  const rawBeforeId = req.query.before_id ? parseInt(req.query.before_id as string, 10) : null;
   const rawPage = req.query.page ? parseInt(req.query.page as string, 10) : null;
 
   if (rawAfterId !== null && (!Number.isFinite(rawAfterId) || rawAfterId < 0)) {
     res.status(400).json({ error: "after_id must be a non-negative integer" });
+    return;
+  }
+  if (rawBeforeId !== null && (!Number.isFinite(rawBeforeId) || rawBeforeId < 1)) {
+    res.status(400).json({ error: "before_id must be a positive integer" });
     return;
   }
   if (rawPage !== null && (!Number.isFinite(rawPage) || rawPage < 1)) {
@@ -49,6 +54,7 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
   }
 
   const afterId = rawAfterId;
+  const beforeId = rawBeforeId;
   const page = rawPage;
 
   const salt = await getSalt();
@@ -70,6 +76,30 @@ router.get("/", async (req: Request, res: Response): Promise<void> => {
       messages: rows.map(r => addHash(r, salt)),
       pagination: {
         after_id: afterId,
+        has_more: countResult.rows[0].cnt > 100,
+        count: rows.length,
+      },
+    });
+    return;
+  }
+
+  if (beforeId !== null) {
+    // Cursor-based: newest first, 100 messages before given ID
+    const { rows } = await pool.query(
+      `SELECT id, name, text, client_ip, created_at FROM messages
+       WHERE id < $1 ORDER BY id DESC LIMIT 100`,
+      [beforeId]
+    );
+
+    const countResult = await pool.query(
+      "SELECT COUNT(*)::int AS cnt FROM messages WHERE id < $1",
+      [beforeId]
+    );
+
+    res.json({
+      messages: rows.map(r => addHash(r, salt)),
+      pagination: {
+        before_id: beforeId,
         has_more: countResult.rows[0].cnt > 100,
         count: rows.length,
       },
