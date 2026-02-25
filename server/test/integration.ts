@@ -179,6 +179,39 @@ describe("Agentspace API", () => {
       assert.equal(status, 200);
       assert.equal(data.pagination.page, 1);
     });
+
+    it("returns cursor-based pagination with before_id (newest first)", async () => {
+      // Get all messages to find a mid-point ID
+      const all = await api(`/api/messages?code=${code}&after_id=0`);
+      const msgs = all.data.messages;
+      assert.ok(msgs.length >= 3, "Need at least 3 messages for this test");
+      const midId = msgs[Math.floor(msgs.length / 2)].id;
+
+      const { status, data } = await api(
+        `/api/messages?code=${code}&before_id=${midId}`
+      );
+      assert.equal(status, 200);
+      assert.ok(Array.isArray(data.messages));
+      assert.equal(data.pagination.before_id, midId);
+      assert.equal(typeof data.pagination.has_more, "boolean");
+      assert.equal(typeof data.pagination.count, "number");
+      // All returned IDs must be less than before_id
+      for (const msg of data.messages) {
+        assert.ok(msg.id < midId, `Expected id ${msg.id} < before_id ${midId}`);
+      }
+      // Newest first: IDs should be descending
+      for (let i = 1; i < data.messages.length; i++) {
+        assert.ok(data.messages[i - 1].id > data.messages[i].id);
+      }
+    });
+
+    it("before_id=1 returns empty (no messages before id 1)", async () => {
+      const { data } = await api(
+        `/api/messages?code=${code}&before_id=1`
+      );
+      assert.equal(data.messages.length, 0);
+      assert.equal(data.pagination.has_more, false);
+    });
   });
 
   describe("POST /api/security-code/regenerate", () => {

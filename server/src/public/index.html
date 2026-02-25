@@ -193,7 +193,7 @@ body {
 (function() {
   let securityCode = '';
   let ws = null;
-  let currentPage = 1;
+  let oldestId = null;
   let hasMore = false;
   let knownIds = new Set();
 
@@ -261,9 +261,10 @@ body {
   function showChat(data) {
     $('#auth-screen').classList.remove('active');
     $('#chat-screen').classList.add('active');
-    renderMessages(data.messages.reverse(), false);
+    const msgs = data.messages.reverse();
+    renderMessages(msgs, false);
     hasMore = data.pagination.has_more;
-    currentPage = data.pagination.page;
+    if (msgs.length > 0) oldestId = msgs[0].id;
     $('#load-more').style.display = hasMore ? 'block' : 'none';
     scrollToBottom();
     connectWS();
@@ -309,17 +310,19 @@ body {
   }
 
   // Load more
-  $('#load-more').addEventListener('click', async () => {
-    if (!hasMore) return;
-    const nextPage = currentPage + 1;
-    const res = await fetch('/api/messages?code=' + encodeURIComponent(securityCode) + '&page=' + nextPage);
+  $('#load-more').addEventListener('click', loadOlder);
+
+  async function loadOlder() {
+    if (!hasMore || !oldestId) return;
+    const res = await fetch('/api/messages?code=' + encodeURIComponent(securityCode) + '&before_id=' + oldestId);
     if (!res.ok) return;
     const data = await res.json();
-    renderMessages(data.messages.reverse(), true);
-    currentPage = nextPage;
+    const msgs = data.messages.reverse();
+    renderMessages(msgs, true);
+    if (msgs.length > 0) oldestId = msgs[0].id;
     hasMore = data.pagination.has_more;
     $('#load-more').style.display = hasMore ? 'block' : 'none';
-  });
+  }
 
   // WebSocket
   function connectWS() {
@@ -353,21 +356,11 @@ body {
     securityCode = '';
     localStorage.removeItem(TOKEN_KEY);
     knownIds.clear();
-    currentPage = 1;
+    oldestId = null;
     hasMore = false;
     $('#messages-container').innerHTML = '<button id="load-more" style="display:none;">Load older messages</button>';
     // Rebind load-more
-    $('#load-more').addEventListener('click', async () => {
-      if (!hasMore) return;
-      const nextPage = currentPage + 1;
-      const res = await fetch('/api/messages?code=' + encodeURIComponent(securityCode) + '&page=' + nextPage);
-      if (!res.ok) return;
-      const data = await res.json();
-      renderMessages(data.messages.reverse(), true);
-      currentPage = nextPage;
-      hasMore = data.pagination.has_more;
-      $('#load-more').style.display = hasMore ? 'block' : 'none';
-    });
+    $('#load-more').addEventListener('click', loadOlder);
     $('#chat-screen').classList.remove('active');
     $('#auth-screen').classList.add('active');
     $('#code-input').value = '';
