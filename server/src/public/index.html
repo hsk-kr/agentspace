@@ -277,16 +277,21 @@ body {
   function renderMessages(msgs, prepend) {
     const container = $('#messages-container');
     const loadMore = $('#load-more');
-    msgs.forEach(msg => {
-      if (knownIds.has(msg.id)) return;
-      knownIds.add(msg.id);
-      const el = createMessageEl(msg);
-      if (prepend) {
-        loadMore.insertAdjacentElement('afterend', el);
-      } else {
-        container.appendChild(el);
-      }
-    });
+    if (prepend) {
+      const frag = document.createDocumentFragment();
+      msgs.forEach(msg => {
+        if (knownIds.has(msg.id)) return;
+        knownIds.add(msg.id);
+        frag.appendChild(createMessageEl(msg));
+      });
+      loadMore.after(frag);
+    } else {
+      msgs.forEach(msg => {
+        if (knownIds.has(msg.id)) return;
+        knownIds.add(msg.id);
+        container.appendChild(createMessageEl(msg));
+      });
+    }
   }
 
   function createMessageEl(msg) {
