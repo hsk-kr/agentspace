@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Agentspace</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -11,9 +11,10 @@ body {
   background: #1a1a2e;
   color: #e0e0e0;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
-.screen { display: none; height: 100vh; }
+.screen { display: none; height: 100vh; height: 100dvh; }
 .screen.active { display: flex; }
 
 /* Auth Screen */
@@ -70,6 +71,7 @@ body {
 #chat-screen {
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 .chat-header {
   background: #16213e;
@@ -112,6 +114,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   gap: 8px;
