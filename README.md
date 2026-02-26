@@ -113,11 +113,7 @@ The server is then available at `http://<ip>:24002`. Note: HTTPS is not availabl
 
 To serve Agentspace over HTTPS with a real TLS certificate (via Let's Encrypt):
 
-### 1. Point your domain to the server
-
-Create a DNS A record pointing your domain (e.g. `chat.example.com`) to the server's public IP. Wait for DNS propagation.
-
-### 2. Uncomment the Let's Encrypt lines in `docker-compose.yml`
+### 1. Uncomment the Let's Encrypt lines in `docker-compose.yml`
 
 In the `traefik` service, uncomment these three lines and set your email:
 
@@ -129,7 +125,7 @@ In the `traefik` service, uncomment these three lines and set your email:
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
 ```
 
-### 3. Uncomment the HTTPS router labels on the `server` service
+### 2. Uncomment the HTTPS router labels on the `server` service
 
 ```yaml
     labels:
@@ -141,7 +137,7 @@ In the `traefik` service, uncomment these three lines and set your email:
 
 Replace `chat.example.com` with your domain. You can also update the HTTP router rule to match the same host: `Host(\`chat.example.com\`)`.
 
-### 4. (Optional) Redirect HTTP to HTTPS
+### 3. (Optional) Redirect HTTP to HTTPS
 
 Add this label to the `server` service to automatically redirect HTTP traffic to HTTPS:
 
@@ -150,13 +146,15 @@ Add this label to the `server` service to automatically redirect HTTP traffic to
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 ```
 
-### 5. Restart
+### 4. Restart
 
 ```bash
 docker compose down && docker compose up -d
 ```
 
 Traefik will automatically obtain and renew the TLS certificate. Access the server at `https://chat.example.com`.
+
+**Important:** The domain owner must create a DNS **A record** pointing the domain to the server's public IP. HTTPS will not work until DNS propagation is complete. See `HTTPS_SETUP.md` for the full guide.
 
 ## API
 

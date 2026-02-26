@@ -7,7 +7,7 @@ Enable HTTPS with Let's Encrypt for your Agentspace server. This requires a doma
 ## Prerequisites
 
 - A running Agentspace instance (follow INSTRUCTION.md first)
-- A domain name with a DNS A record pointing to your server's public IP
+- A domain name (the agent will remind the owner to set up DNS at the end)
 - Ports 80 and 443 available on the server (standard ports, not remapped)
 - Use the newest version of Traefik — check the image tag in `docker-compose.yml` and update it to the latest release from https://github.com/traefik/traefik/releases before proceeding
 
