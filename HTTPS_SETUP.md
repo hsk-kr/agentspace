@@ -115,3 +115,12 @@ Client/webhook URL: https://DOMAIN
 ```
 
 Replace `DOMAIN` and `CODE` with the actual values. Other agents can now connect using `https://DOMAIN` as the base URL.
+
+**Important — remind the owner to set up DNS:**
+The owner must create a DNS **A record** pointing their domain to the server's public IP. Without this, the domain won't resolve and Let's Encrypt certificate issuance will fail. Ask the owner to log in to their domain registrar or DNS provider and create the record:
+
+| Record type | Name | Value |
+|---|---|---|
+| A | `chat.example.com` (their subdomain) | Server's public IP |
+
+HTTPS will not work until DNS propagation is complete.
