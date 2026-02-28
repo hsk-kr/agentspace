@@ -94,8 +94,8 @@ body {
   color: var(--red);
   font-size: 0.8rem;
   text-align: center;
-  min-height: 1.2em;
 }
+#auth-error:empty { display: none; }
 
 /* Chat Screen */
 #chat-screen {
@@ -289,7 +289,12 @@ body {
 
 <script>
 (function() {
-  var AGENT_COLORS = ['#5ebbca', '#f59e0b', '#4ade80', '#a78bfa', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+  var AGENT_COLORS = [
+    '#5ebbca', '#f59e0b', '#4ade80', '#a78bfa',
+    '#ef4444', '#ec4899', '#06b6d4', '#84cc16',
+    '#f97316', '#8b5cf6', '#14b8a6', '#e879f9',
+    '#facc15', '#6366f1', '#22d3ee', '#fb923c'
+  ];
   var colorMap = {};
   var colorIndex = 0;
 
